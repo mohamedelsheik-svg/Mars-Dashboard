@@ -994,30 +994,44 @@ function renderKPITab(c, kpiType) {
           <span style="font-size:11px;color:var(--text2)">${lang==='ar'?'جاري تحميل الأصناف الناقصة...':'Loading missing SKUs...'}</span>
         </div>`;
       } else if (allMissingSkus.length) {
+        const panelId = `gap-panel-${cat.replace(/\s/g,'-')}`;
+        const btnId   = `gap-btn-${cat.replace(/\s/g,'-')}`;
         html += `
-        <div style="margin-top:12px;background:#ff525210;border:1px solid #ff525230;border-radius:10px;overflow:hidden">
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #ff525230;background:#ff525118">
-            <span style="font-size:14px">📋</span>
-            <span style="font-size:12px;font-weight:700;color:#ff7043">${lang==='ar'?`الأصناف الناقصة (${allMissingSkus.length})`:`Missing SKUs (${allMissingSkus.length})`}</span>
-            <span style="font-size:11px;color:var(--text3);margin-right:auto">${lang==='ar'?'أدخلها على الفور':'Add to shelf immediately'}</span>
-          </div>
-          <div style="padding:8px 12px">
-            ${allMissingSkus.map(s => `
-            <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid #ff525220">
-              <span style="width:6px;height:6px;border-radius:50%;background:#ff5252;flex-shrink:0;margin-top:5px"></span>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.3">${s.name}</div>
-                <div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:1px">${s.code} · ${lang==='ar'?(LOC_AR[s.loc]||s.loc):s.loc}</div>
+        <div style="margin-top:10px">
+          <!-- Toggle button -->
+          <button id="${btnId}"
+            onclick="toggleGapPanel('${panelId}','${btnId}')"
+            style="width:100%;display:flex;align-items:center;justify-content:space-between;
+                   padding:9px 14px;border-radius:10px;border:1px solid #ff525244;
+                   background:#ff525212;cursor:pointer;transition:background .2s">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:14px">📋</span>
+              <span style="font-size:12px;font-weight:700;color:#ff7043">
+                ${lang==='ar'?`${allMissingSkus.length} صنف ناقص — اضغط للعرض`:`${allMissingSkus.length} Missing SKUs — Tap to view`}
+              </span>
+            </div>
+            <span id="${btnId}-icon" style="font-size:16px;color:#ff7043;transition:transform .25s">▼</span>
+          </button>
+          <!-- Collapsible panel -->
+          <div id="${panelId}" style="display:none;margin-top:4px;background:#ff525210;border:1px solid #ff525230;border-radius:10px;overflow:hidden">
+            <div style="padding:8px 12px">
+              ${allMissingSkus.map(s => `
+              <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid #ff525220">
+                <span style="width:6px;height:6px;border-radius:50%;background:#ff5252;flex-shrink:0;margin-top:5px"></span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:12px;font-weight:600;color:var(--text);line-height:1.3">${s.name}</div>
+                  <div style="font-size:10px;color:var(--text3);font-family:monospace;margin-top:1px">${s.code} · ${lang==='ar'?(LOC_AR[s.loc]||s.loc):s.loc}</div>
+                </div>
+              </div>`).join('')}
+            </div>
+            <div style="padding:8px 14px;background:#ff570015;border-top:1px solid #ff525230">
+              <div style="font-size:11px;font-weight:700;color:#ffb300;margin-bottom:4px">⚡ ${lang==='ar'?'الأكشن بلان:':'Action Plan:'}</div>
+              <div style="font-size:11px;color:var(--text2);line-height:1.8">
+                ${lang==='ar'
+                  ? `• اطلب ${allMissingSkus.length} صنف من المخزن<br>• ضعهم في ${[...new Set(allMissingSkus.map(s=>LOC_AR[s.loc]||s.loc))].join(' و ')}<br>• تحقق من الفانوج والتسعيرة`
+                  : `• Order ${allMissingSkus.length} SKUs from warehouse<br>• Place in ${[...new Set(allMissingSkus.map(s=>s.loc))].join(' & ')}<br>• Verify pricing & planogram`
+                }
               </div>
-            </div>`).join('')}
-          </div>
-          <div style="padding:8px 12px;background:#ff570015;border-top:1px solid #ff525230">
-            <div style="font-size:11px;font-weight:700;color:#ffb300;margin-bottom:4px">⚡ ${lang==='ar'?'الأكشن بلان:':'Action Plan:'}</div>
-            <div style="font-size:11px;color:var(--text2);line-height:1.6">
-              ${lang==='ar'
-                ? `• اطلب ${allMissingSkus.length} صنف من المخزن<br>• ضعهم في ${[...new Set(allMissingSkus.map(s=>LOC_AR[s.loc]||s.loc))].join(' و ')}<br>• تحقق من الفانوج والتسعيرة`
-                : `• Order ${allMissingSkus.length} SKUs from warehouse<br>• Place in ${[...new Set(allMissingSkus.map(s=>s.loc))].join(' & ')}<br>• Verify pricing & planogram`
-              }
             </div>
           </div>
         </div>`;
@@ -1038,6 +1052,17 @@ function renderKPITab(c, kpiType) {
 function catAr(c){
   const m={'Chocolate':'شوكولاتة','Fruity Confections':'حلوى فواكه','Gum':'علكة','Ice Cream':'آيس كريم','Petfood':'طعام حيوانات'};
   return m[c]||c;
+}
+
+function toggleGapPanel(panelId, btnId) {
+  const panel = document.getElementById(panelId);
+  const icon  = document.getElementById(btnId + '-icon');
+  const btn   = document.getElementById(btnId);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  if (btn)  btn.style.background = isOpen ? '#ff525212' : '#ff525222';
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
