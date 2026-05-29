@@ -475,23 +475,37 @@ function applyLang() {
 // ─── LOAD DATA ────────────────────────────────────────────────
 async function loadData() {
   try {
-    const [r1, r2, r3] = await Promise.all([
+    // Load main data first (fast) — show app immediately
+    const [r1, r2] = await Promise.all([
       fetch('data.json'),
-      fetch('kpi_data.json'),
-      fetch('rep_gaps.json')
+      fetch('kpi_data.json')
     ]);
     ALL_CUSTOMERS = await r1.json();
     KPI_DATA      = await r2.json();
-    const repRaw  = await r3.json();
-    // Build store-level lookup: code → cat_gaps array
-    REP_GAPS = {};
-    for (const repData of Object.values(repRaw)) {
-      for (const store of repData.stores) {
-        REP_GAPS[store.code] = store.cat_gaps || [];
-      }
-    }
     document.getElementById('loader').style.display = 'none';
     renderHistory();
+
+    // Load gaps in background — don't block UI
+    fetch('store_gaps.json')
+      .then(r => r.json())
+      .then(raw => {
+        REP_GAPS = {};
+        for (const [code, gaps] of Object.entries(raw)) {
+          // Normalize slim format back to expected format
+          REP_GAPS[code] = gaps.map(g => ({
+            cat: g.cat, loc: g.loc, is_critical: g.crit,
+            skus: (g.skus || []).map(s => ({code: s.c, name: s.n}))
+          }));
+        }
+        // If KPI tab is currently open, re-render it now with gap data
+        const kpiTab = document.getElementById('tab-kpi');
+        if (kpiTab && kpiTab.classList.contains('active') && currentCustomer) {
+          const kpiType = getCustomerKPIType(currentCustomer.code);
+          if (kpiType) renderKPITab(currentCustomer, kpiType);
+        }
+      })
+      .catch(() => { REP_GAPS = {}; });
+
   } catch(e) {
     document.getElementById('loader').innerHTML = '<p style="color:var(--danger);text-align:center;padding:20px">فشل تحميل البيانات</p>';
   }
@@ -857,12 +871,16 @@ function renderKPITab(c, kpiType) {
   const overallScore= data.scores[c.code] || 0;
   const className   = data.classes[c.code] || '—';
   const kpiMap      = data.kpi[c.code] || {};
-  const storeMissing= (REP_GAPS && REP_GAPS[c.code]) ? REP_GAPS[c.code] : [];
+  const gapsReady   = REP_GAPS !== null;
+  const storeMissing= gapsReady ? (REP_GAPS[c.code] || []) : null;
 
   // Build fast lookup: cat|loc → missing skus
   const missingLookup = {};
-  for (const cg of storeMissing) {
-    missingLookup[`${cg.cat}|${cg.loc}`] = cg.skus || [];
+  if (storeMissing) {
+    for (const cg of storeMissing) {
+      missingLookup[`${cg.cat}|${cg.loc}`] = cg.skus || [];
+    }
+  }
   }
 
   const KPI_LABELS = {
@@ -882,7 +900,7 @@ function renderKPITab(c, kpiType) {
   let html = `<div style="padding:14px">`;
 
   // ── Summary card ──────────────────────────────────────────
-  const totalMissing = storeMissing.reduce((a,cg)=>a+(cg.skus||[]).length,0);
+  const totalMissing = storeMissing ? storeMissing.reduce((a,cg)=>a+(cg.skus||[]).length,0) : -1;
   html += `
   <div class="section-card" style="background:linear-gradient(135deg,${scoreColor(overallScore)}15,transparent)">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
@@ -896,11 +914,15 @@ function renderKPITab(c, kpiType) {
         <div style="margin-top:6px;font-size:13px;font-weight:700;color:${scoreColor(overallScore)}">${actionLabel(overallScore)}</div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:${totalMissing?'12px':'0'}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:${(totalMissing>0||totalMissing===-1)?'12px':'0'}">
       <span style="font-size:11px;color:var(--text2)">${(overallScore*100).toFixed(1)}%</span>
       <div class="score-bar-wrap" style="margin:0"><div class="score-bar-fill" style="width:${overallScore*100}%;background:${scoreColor(overallScore)}"></div></div>
     </div>
-    ${totalMissing ? `
+    ${totalMissing === -1 ? `
+    <div style="background:#ffb30015;border:1px solid #ffb30033;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px">
+      <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></div>
+      <div style="font-size:12px;color:var(--text2)">${lang==='ar'?'جاري تحميل الأصناف الناقصة...':'Loading missing SKUs...'}</div>
+    </div>` : totalMissing > 0 ? `
     <div style="background:#ff525215;border:1px solid #ff525233;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:10px">
       <span style="font-size:20px">🚨</span>
       <div>
@@ -922,15 +944,17 @@ function renderKPITab(c, kpiType) {
       const kpiKeys = Object.keys(kpis);
       const avgScore= kpiKeys.reduce((s,k)=>s+kpis[k].score,0) / kpiKeys.length;
 
-      // Collect missing SKUs for this category across all locations
-      const catMissing = storeMissing.filter(cg => cg.cat === cat);
+      // Collect missing SKUs for this category
+      const catMissing = storeMissing ? storeMissing.filter(cg => cg.cat === cat) : null;
       const allMissingSkus = [];
-      const seenCodes = new Set();
-      for (const cg of catMissing) {
-        for (const s of (cg.skus||[])) {
-          if (!seenCodes.has(s.code)) {
-            seenCodes.add(s.code);
-            allMissingSkus.push({...s, loc: cg.loc});
+      if (catMissing) {
+        const seenCodes = new Set();
+        for (const cg of catMissing) {
+          for (const s of (cg.skus||[])) {
+            if (!seenCodes.has(s.code)) {
+              seenCodes.add(s.code);
+              allMissingSkus.push({...s, loc: cg.loc});
+            }
           }
         }
       }
@@ -963,7 +987,13 @@ function renderKPITab(c, kpiType) {
       }
 
       // ── Missing SKUs + Action Plan ──────────────────────
-      if (allMissingSkus.length) {
+      if (catMissing === null) {
+        // Still loading
+        html += `<div style="margin-top:10px;background:#ffb30010;border:1px solid #ffb30030;border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+          <div style="width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0"></div>
+          <span style="font-size:11px;color:var(--text2)">${lang==='ar'?'جاري تحميل الأصناف الناقصة...':'Loading missing SKUs...'}</span>
+        </div>`;
+      } else if (allMissingSkus.length) {
         html += `
         <div style="margin-top:12px;background:#ff525210;border:1px solid #ff525230;border-radius:10px;overflow:hidden">
           <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #ff525230;background:#ff525118">
