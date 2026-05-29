@@ -472,42 +472,54 @@ function applyLang() {
   document.getElementById('lbl-top16').textContent = t('top16');
 }
 
-// ─── LOAD DATA ────────────────────────────────────────────────
 async function loadData() {
   try {
-    // Load main data
-    const [r1, r2] = await Promise.all([
-      fetch('data.json'),
-      fetch('kpi_data.json')
-    ]);
+    // Single compressed bundle — much faster than 3 separate files
+    const r = await fetch('bundle.js');
+    if (!r.ok) throw new Error('bundle.js غير موجود (' + r.status + ')');
+    const text = await r.text();
 
-    if (!r1.ok) throw new Error('data.json غير موجود (' + r1.status + ')');
-    if (!r2.ok) throw new Error('kpi_data.json غير موجود (' + r2.status + ')');
+    // Extract base64
+    const b64 = text.replace('const BUNDLE_B64="','').replace('";','');
 
-    ALL_CUSTOMERS = await r1.json();
-    KPI_DATA      = await r2.json();
+    // Decode base64 → Uint8Array
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+
+    // Decompress gzip using DecompressionStream
+    const ds = new DecompressionStream('gzip');
+    const writer = ds.writable.getWriter();
+    writer.write(bytes); writer.close();
+    const chunks = [];
+    const reader = ds.readable.getReader();
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const total = chunks.reduce((a,c)=>a+c.length,0);
+    const merged = new Uint8Array(total);
+    let offset = 0;
+    for (const c of chunks) { merged.set(c, offset); offset += c.length; }
+    const json_str = new TextDecoder().decode(merged);
+    const bundle = JSON.parse(json_str);
+
+    // Assign globals
+    ALL_CUSTOMERS = bundle.customers;
+    KPI_DATA      = bundle.kpi;
+
+    // Build REP_GAPS from gaps
+    REP_GAPS = {};
+    for (const [code, gapList] of Object.entries(bundle.gaps)) {
+      REP_GAPS[code] = gapList.map(g => ({
+        cat: g.cat, loc: g.loc, is_critical: g.crit,
+        skus: (g.skus || []).map(s => ({code: s.c, name: s.n}))
+      }));
+    }
+
     document.getElementById('loader').style.display = 'none';
     renderHistory();
-
-    // Load gaps in background — don't block UI — optional file
-    fetch('store_gaps.json')
-      .then(r => { if (!r.ok) throw new Error('store_gaps not found'); return r.json(); })
-      .then(raw => {
-        REP_GAPS = {};
-        for (const [code, gaps] of Object.entries(raw)) {
-          REP_GAPS[code] = gaps.map(g => ({
-            cat: g.cat, loc: g.loc, is_critical: g.crit,
-            skus: (g.skus || []).map(s => ({code: s.c, name: s.n}))
-          }));
-        }
-        // Re-render KPI tab if open
-        const kpiTab = document.getElementById('tab-kpi');
-        if (kpiTab && kpiTab.classList.contains('active') && currentCustomer) {
-          const kpiType = getCustomerKPIType(currentCustomer.code);
-          if (kpiType) renderKPITab(currentCustomer, kpiType);
-        }
-      })
-      .catch(() => { REP_GAPS = {}; }); // Fail silently — gaps optional
 
   } catch(e) {
     document.getElementById('loader').innerHTML = `
@@ -515,18 +527,17 @@ async function loadData() {
         <div style="font-size:40px;margin-bottom:16px">⚠️</div>
         <div style="color:var(--danger);font-size:14px;font-weight:700;margin-bottom:8px">فشل تحميل البيانات</div>
         <div style="color:var(--text2);font-size:12px;line-height:1.8;margin-bottom:16px">${e.message}</div>
-        <div style="background:var(--card2);border-radius:10px;padding:12px;text-align:right;font-size:12px;color:var(--text2)">
-          <div style="font-weight:700;color:var(--text);margin-bottom:8px">الملفات المطلوبة على GitHub:</div>
-          <div>✅ index.html</div>
-          <div>📁 data.json</div>
-          <div>📁 kpi_data.json</div>
-          <div>📁 store_gaps.json</div>
-          <div>📁 vercel.json</div>
+        <div style="background:var(--card2);border-radius:10px;padding:12px;font-size:12px;color:var(--text2)">
+          <div style="font-weight:700;color:var(--text);margin-bottom:6px">الملف المطلوب على GitHub:</div>
+          <div>📦 bundle.js</div>
+          <div>📄 index.html</div>
+          <div>⚙️ vercel.json</div>
         </div>
         <button onclick="location.reload()" style="margin-top:14px;padding:10px 24px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">🔄 إعادة المحاولة</button>
       </div>`;
   }
 }
+
 
 // ─── SEARCH ──────────────────────────────────────────────────
 function searchByCode(q) {
@@ -897,7 +908,6 @@ function renderKPITab(c, kpiType) {
     for (const cg of storeMissing) {
       missingLookup[`${cg.cat}|${cg.loc}`] = cg.skus || [];
     }
-  }
   }
 
   const KPI_LABELS = {
