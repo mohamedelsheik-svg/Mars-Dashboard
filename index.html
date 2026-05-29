@@ -622,7 +622,7 @@ function renderAssetsTab(c, hl) {
       </tr></thead>
       <tbody>${assets.map(a => `
         <tr class="${hl && String(a.serial) === String(hl) ? 'highlight-row' : ''}">
-          <td><span class="badge" style="background:${a.category==='FREEZER'?'#6c63ff22':'#29b6f622'};color:${a.category==='FREEZER'?'var(--secondary)':'var(--info)'}">${a.category||'—'}</span></td>
+          <td><span class="badge" style="background:${a.category==='FREEZER'?'#6c63ff22':'#29b6f622'};color:${a.category==='FREEZER'?'var(--secondary)':'var(--info)'}">${a.category==='FREEZER'?(lang==='ar'?'فريزر':'Freezer'):(lang==='ar'?'ثلاجة':'Chiller')}</span></td>
           <td style="font-family:monospace;font-size:11px">${a.serial||'—'}</td>
           <td>${a.mfg_year||'—'}</td>
           <td style="font-size:11px">${(a.install_date||'—').substring(0,10)}</td>
@@ -728,8 +728,8 @@ function renderSalesTab(c) {
         <tr style="${s.gsv===0?'opacity:0.45':''}">
           <td><span class="rank-badge" style="background:${s.gsv>0?'#00c85322':'var(--card2)'};color:${s.gsv>0?'var(--success)':'var(--text3)'}">${i+1}</span></td>
           <td>
-            <div style="font-size:12px;font-weight:600;line-height:1.4">${s.sku_name||'—'}</div>
-            <div style="font-size:10px;color:var(--text3);font-family:monospace">${s.code||''}</div>
+            <div style="font-size:12px;font-weight:600;line-height:1.4">${s.name||s.sku_name||'—'}</div>
+            <div style="font-size:10px;color:var(--text3);font-family:monospace">${s.code||s.sku_code||''}</div>
           </td>
           <td style="font-size:11px;color:var(--text2)">${s.brand||s.category||'—'}</td>
           <td style="font-weight:700;color:${s.gsv>0?'var(--success)':'var(--text3)'};white-space:nowrap">${s.gsv>0?s.gsv.toFixed(2):'—'}</td>
