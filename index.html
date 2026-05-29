@@ -212,7 +212,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
   <!-- Tips -->
   <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:16px">
     <p style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:6px" id="lbl-tips">💡 أمثلة للبحث</p>
-    <p id="tip1" style="font-size:12px;color:var(--text3);line-height:1.8">• كود عميل: 253463 أو N008068</p>
+    <p id="tip1" style="font-size:12px;color:var(--text3);line-height:1.8">• كود عميل: 253463 أو 335295</p>
     <p id="tip2" style="font-size:12px;color:var(--text3)">• سيريال: 10129 أو 991901089</p>
   </div>
 </div>
@@ -338,7 +338,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     <div class="section-card">
       <div class="card-header">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        <span id="lbl-top16">أهم 16 صنف</span>
+        <span id="lbl-top16">الأصناف المستهدفة (16 صنف)</span>
       </div>
       <div id="sku-table"></div>
     </div>
@@ -363,7 +363,7 @@ const T = {
     ph1:'أدخل كود العميل...', ph2:'أدخل رقم السيريال...',
     searchBtn:'بحث', noData:'لا توجد بيانات', loading:'جاري التحميل...',
     recent:'عمليات البحث الأخيرة', clear:'مسح', tips:'💡 أمثلة للبحث',
-    tip1:'• كود عميل: 253463 أو N008068', tip2:'• سيريال: 10129 أو 991901089',
+    tip1:'• كود عميل: 253463 أو 335295', tip2:'• سيريال: 10129 أو 991901089',
     heroTxt:'ابحث بكود العميل أو رقم الأصل',
     custDetails:'تفاصيل العميل', repLbl:'المندوب',
     code:'الكود', name:'الاسم', city:'المدينة', region:'المنطقة',
@@ -376,7 +376,7 @@ const T = {
     mfgYear:'سنة الصنع', installDate:'تاريخ التركيب',
     totalGSV:'إجمالي GSV', target:'الهدف',
     catBreak:'المبيعات حسب الفئة', chartLbl:'توزيع المبيعات — الشهر الحالي',
-    top16:'أهم 16 صنف', skuCode:'الكود', skuName:'الصنف', brand:'الماركة', gsv:'القيمة',
+    top16:'الأصناف المستهدفة', skuCode:'الكود', skuName:'الصنف', brand:'الماركة', gsv:'القيمة (ر.س)',
     tabInfo:'العميل', tabAssets:'الأصول', tabSales:'المبيعات',
     lastInv:'إجمالي المبيعات الشهر الحالي',
     dataSubtitle:'بيانات حقيقية من ملفات Excel',
@@ -387,7 +387,7 @@ const T = {
     ph1:'Enter customer code...', ph2:'Enter serial number...',
     searchBtn:'Search', noData:'No data found', loading:'Loading...',
     recent:'Recent Searches', clear:'Clear', tips:'💡 Search Examples',
-    tip1:'• Customer code: 253463 or N008068', tip2:'• Serial: 10129 or 991901089',
+    tip1:'• Customer code: 253463 or 335295', tip2:'• Serial: 10129 or 991901089',
     heroTxt:'Search by customer code or asset serial',
     custDetails:'Customer Details', repLbl:'Sales Rep',
     code:'Code', name:'Name', city:'City', region:'Region',
@@ -400,7 +400,7 @@ const T = {
     mfgYear:'Mfg Year', installDate:'Install Date',
     totalGSV:'Total GSV', target:'Target',
     catBreak:'Sales by Category', chartLbl:'Sales Distribution — Current Month',
-    top16:'Top 16 Products', skuCode:'Code', skuName:'Product', brand:'Brand', gsv:'GSV',
+    top16:'Target SKUs', skuCode:'Code', skuName:'Product', brand:'Brand', gsv:'GSV (SAR)',
     tabInfo:'Customer', tabAssets:'Assets', tabSales:'Sales',
     lastInv:'Current Month Total Sales',
     dataSubtitle:'Live data from Excel files',
@@ -691,7 +691,27 @@ function renderSalesTab(c) {
   });
 
   // Top 16 SKUs
-  const skus = (c.top_skus || []).slice(0, 16);
+  const ALL_TARGET_SKUS = [
+    {code:'01012476504.001',name:'GALAXY Flute Cream 22.5gx(21+3)x12',brand:'Galaxy'},
+    {code:'01012476514.001',name:'GALAXY Flute Cream 22.5gx(22+2)x12',brand:'Galaxy'},
+    {code:'01012476530.001',name:'Galaxy Crispy 9g 24X8',brand:'Galaxy'},
+    {code:'01032475615.001',name:'SNK PntButter 6x24x36,5g SA AE',brand:'Snickers'},
+    {code:'01032475628.001',name:'SNK PntButter 6x24x36,5g SA AE',brand:'Snickers'},
+    {code:'01032475631.001',name:'SNICKERS Peanut RW24gx(22+2)x12',brand:'Snickers'},
+    {code:'01042476342.001',name:'TWIX Caramel RW 22.5gx(21+3)x12',brand:'Twix'},
+    {code:'01042476344.001',name:'TWIX Hazelnut Single 25gx20x12',brand:'Twix'},
+    {code:'01042476349.001',name:'TWIX Caramel RW 22.5gx(22+2)x12',brand:'Twix'},
+    {code:'17013062301.001',name:'Extra 4 Pellet Spearmint 4x32x20',brand:'Extra'},
+    {code:'17013062302.001',name:'Extra 4 Pellet Fruit 4x32x20',brand:'Extra'},
+    {code:'17013062335.001',name:'Extra Mix Fruit 20x32x3.3g ARB',brand:'Extra'},
+    {code:'17013062336.001',name:'Extra Spearmint 20x32x3.3g ARB',brand:'Extra'},
+    {code:'17013062345.001',name:'EXTRA 1 Tab Peppermint 1.7gx50x20',brand:'Extra'},
+    {code:'17013062346.001',name:'EXTRA 1 Tab Mixed Fruit 1.7gx50x20',brand:'Extra'},
+    {code:'17053042990.001',name:'SKT CT CHW LEN FRT 10GM NW PK',brand:'Skittles'},
+  ];
+  const skuMap = {};
+  (c.target_skus || []).forEach(s => { skuMap[s.sku_code] = s.gsv; });
+  const skus = ALL_TARGET_SKUS.map(s => ({...s, gsv: skuMap[s.code] || 0}));
   if (!skus.length) {
     document.getElementById('sku-table').innerHTML = `<p style="color:var(--text3);text-align:center;padding:16px">${t('noData')}</p>`;
     return;
@@ -705,14 +725,14 @@ function renderSalesTab(c) {
         <th>${t('gsv')}</th>
       </tr></thead>
       <tbody>${skus.map((s,i) => `
-        <tr>
-          <td><span class="rank-badge" style="background:${i<3?'#ffb30022':'var(--card2)'};color:${i<3?'var(--warn)':'var(--text3)'}">${i+1}</span></td>
+        <tr style="${s.gsv===0?'opacity:0.45':''}">
+          <td><span class="rank-badge" style="background:${s.gsv>0?'#00c85322':'var(--card2)'};color:${s.gsv>0?'var(--success)':'var(--text3)'}">${i+1}</span></td>
           <td>
             <div style="font-size:12px;font-weight:600;line-height:1.4">${s.sku_name||'—'}</div>
-            <div style="font-size:10px;color:var(--text3);font-family:monospace">${s.sku_code||''}</div>
+            <div style="font-size:10px;color:var(--text3);font-family:monospace">${s.code||''}</div>
           </td>
           <td style="font-size:11px;color:var(--text2)">${s.brand||s.category||'—'}</td>
-          <td style="font-weight:700;color:var(--success);white-space:nowrap">${(s.gsv||0).toFixed(0)}</td>
+          <td style="font-weight:700;color:${s.gsv>0?'var(--success)':'var(--text3)'};white-space:nowrap">${s.gsv>0?s.gsv.toFixed(2):'—'}</td>
         </tr>`).join('')}
       </tbody>
     </table>`;
