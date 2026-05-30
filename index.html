@@ -258,7 +258,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
     </div>
     <div class="tab" id="tab-kpi-btn" data-tab="kpi" style="display:none">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      <span id="tab-kpi-lbl">KPI</span>
+      <span id="tab-kpi-lbl">TRAX Score</span>
     </div>
   </div>
 
@@ -286,6 +286,9 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
   <!-- ASSETS TAB -->
   <div class="tab-content" id="tab-assets">
+    <!-- Chiller & Freezer target cards -->
+    <div id="asset-target-cards" style="padding:14px 14px 0"></div>
+    <div style="padding:0 14px">
     <div class="stats-row">
       <div class="stat-box">
         <div class="stat-icon" style="background:#29b6f622"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M6 6h.01M18 6h.01M12 6h.01M12 12h.01M12 18h.01"/></svg></div>
@@ -310,6 +313,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
       </div>
       <div id="assets-table"></div>
     </div>
+    </div>
   </div>
 
   <!-- SALES TAB -->
@@ -320,14 +324,30 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sa
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
         <span id="lbl-last-inv">إجمالي المبيعات الشهر الحالي</span>
       </div>
-      <div class="invoice-banner">
-        <div>
-          <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="lbl-total-gsv">إجمالي GSV</div>
-          <div class="inv-amount" id="d-gsv">—</div>
+      <div class="invoice-banner" style="flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+          <div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="lbl-total-gsv">إجمالي GSV</div>
+            <div class="inv-amount" id="d-gsv">—</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:2px" id="lbl-achieve">التحقيق</div>
+            <div style="font-size:22px;font-weight:800" id="d-achieve-pct">—</div>
+          </div>
+          <div style="text-align:left">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="lbl-target">الهدف</div>
+            <div style="font-size:18px;font-weight:700;color:var(--warn)" id="d-target">—</div>
+          </div>
         </div>
-        <div style="text-align:left">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="lbl-target">الهدف</div>
-          <div style="font-size:18px;font-weight:700;color:var(--warn)" id="d-target">—</div>
+        <!-- Progress bar -->
+        <div id="achieve-bar-wrap" style="display:none;width:100%">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:10px;color:var(--text3)" id="lbl-achieve-bar">نسبة التحقيق</span>
+            <span style="font-size:10px;font-weight:700" id="d-achieve-bar-pct">—</span>
+          </div>
+          <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden">
+            <div id="achieve-bar-fill" style="height:100%;border-radius:5px;transition:width .8s ease;width:0%"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -399,7 +419,7 @@ const T = {
     totalGSV:'إجمالي GSV', target:'الهدف',
     catBreak:'المبيعات حسب الفئة', chartLbl:'توزيع المبيعات — الشهر الحالي',
     top16:'الأصناف المستهدفة', skuCode:'الكود', skuName:'الصنف', brand:'الماركة', gsv:'القيمة (ر.س)',
-    tabInfo:'العميل', tabAssets:'الأصول', tabSales:'المبيعات', tabKpi:'أداء KPI',
+    tabInfo:'العميل', tabAssets:'الأصول', tabSales:'المبيعات', tabKpi:'TRAX Score',
     lastInv:'إجمالي المبيعات الشهر الحالي',
     dataSubtitle:'بيانات حقيقية من ملفات Excel',
     sar:'ر.س',
@@ -423,7 +443,7 @@ const T = {
     totalGSV:'Total GSV', target:'Target',
     catBreak:'Sales by Category', chartLbl:'Sales Distribution — Current Month',
     top16:'Target SKUs', skuCode:'Code', skuName:'Product', brand:'Brand', gsv:'GSV (SAR)',
-    tabInfo:'Customer', tabAssets:'Assets', tabSales:'Sales', tabKpi:'KPI Score',
+    tabInfo:'Customer', tabAssets:'Assets', tabSales:'Sales', tabKpi:'TRAX Score',
     lastInv:'Current Month Total Sales',
     dataSubtitle:'Live data from Excel files',
     sar:'SAR',
@@ -473,38 +493,50 @@ function applyLang() {
 }
 
 async function loadData() {
-  const show = msg => {
-    const el = document.getElementById('loader');
-    if (el) el.querySelector('.loader-txt').textContent = msg;
+  const loaderTxt = document.querySelector('.loader-txt');
+  const setMsg = msg => { if(loaderTxt) loaderTxt.textContent = msg; };
+
+  const fetchWithTimeout = async (url, timeout=30000) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(timer);
+      return r;
+    } catch(e) {
+      clearTimeout(timer);
+      throw new Error(url + ' — ' + (e.name === 'AbortError' ? 'انتهى الوقت' : e.message));
+    }
   };
+
   try {
-    show('جاري تحميل بيانات العملاء...');
-    const r1 = await fetch('data.json');
-    if (!r1.ok) throw new Error('data.json مش موجود - تأكد من رفع الملفات');
+    setMsg('جاري تحميل بيانات العملاء...');
+    const r1 = await fetchWithTimeout('data.json');
+    if (!r1.ok) throw new Error('data.json: خطأ ' + r1.status);
     ALL_CUSTOMERS = await r1.json();
 
-    show('جاري تحميل بيانات KPI...');
-    const r2 = await fetch('kpi_data.json');
-    if (!r2.ok) throw new Error('kpi_data.json مش موجود - تأكد من رفع الملفات');
+    setMsg('جاري تحميل KPI...');
+    const r2 = await fetchWithTimeout('kpi_data.json');
+    if (!r2.ok) throw new Error('kpi_data.json: خطأ ' + r2.status);
     KPI_DATA = await r2.json();
 
     document.getElementById('loader').style.display = 'none';
     renderHistory();
 
-    // Load gaps in background silently
-    fetch('store_gaps.json')
+    // Load gaps silently in background
+    fetchWithTimeout('store_gaps.json', 60000)
       .then(r => r.ok ? r.json() : null)
       .then(raw => {
         if (!raw) return;
         REP_GAPS = {};
-        for (const [code, gapList] of Object.entries(raw)) {
-          REP_GAPS[code] = gapList.map(g => ({
+        for (const [code, gl] of Object.entries(raw)) {
+          REP_GAPS[code] = gl.map(g => ({
             cat: g.cat, loc: g.loc, is_critical: g.crit,
             skus: (g.skus||[]).map(s => ({code:s.c, name:s.n}))
           }));
         }
-        const kpiTab = document.getElementById('tab-kpi');
-        if (kpiTab && kpiTab.classList.contains('active') && currentCustomer) {
+        const tab = document.getElementById('tab-kpi');
+        if (tab && tab.classList.contains('active') && currentCustomer) {
           const kpiType = getCustomerKPIType(currentCustomer.code);
           if (kpiType) renderKPITab(currentCustomer, kpiType);
         }
@@ -513,19 +545,19 @@ async function loadData() {
 
   } catch(e) {
     document.getElementById('loader').innerHTML = `
-      <div style="text-align:center;padding:32px;max-width:300px">
+      <div style="text-align:center;padding:24px 16px;max-width:300px;margin:0 auto">
         <div style="font-size:36px;margin-bottom:12px">⚠️</div>
-        <div style="color:#ff5252;font-size:13px;font-weight:700;margin-bottom:8px">فشل التحميل</div>
-        <div style="color:var(--text2);font-size:12px;line-height:1.8;margin-bottom:16px">${e.message}</div>
-        <div style="background:var(--card2);border-radius:10px;padding:12px;font-size:11px;color:var(--text2);text-align:right">
+        <div style="color:#ff5252;font-size:14px;font-weight:700;margin-bottom:8px">فشل التحميل</div>
+        <div style="color:#94a3b8;font-size:12px;line-height:1.8;margin-bottom:14px;word-break:break-word">${e.message}</div>
+        <div style="background:#1a2235;border-radius:10px;padding:12px;font-size:11px;color:#94a3b8;text-align:right;margin-bottom:14px">
           الملفات المطلوبة على GitHub:<br>
-          📄 index.html<br>
-          📦 data.json<br>
-          📦 kpi_data.json<br>
-          📦 store_gaps.json<br>
+          📄 index.html &nbsp; 📦 data.json<br>
+          📦 kpi_data.json &nbsp; 📦 store_gaps.json<br>
           ⚙️ vercel.json
         </div>
-        <button onclick="location.reload()" style="margin-top:12px;padding:9px 20px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">🔄 إعادة المحاولة</button>
+        <button onclick="location.reload()" style="padding:10px 24px;background:#00d4aa;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">
+          🔄 إعادة المحاولة
+        </button>
       </div>`;
   }
 }
@@ -690,9 +722,47 @@ function renderInfoTab(c) {
 // ─── ASSETS TAB ───────────────────────────────────────────────
 function renderAssetsTab(c, hl) {
   const assets = c.assets || [];
-  document.getElementById('d-fridges').textContent = c.fridges_count || 0;
-  document.getElementById('d-freezers').textContent = c.freezers_count || 0;
+  document.getElementById('d-fridges').textContent    = c.fridges_count  || 0;
+  document.getElementById('d-freezers').textContent   = c.freezers_count || 0;
   document.getElementById('d-total-assets').textContent = assets.length;
+
+  const chPct = c.chiller_pct  || 0;
+  const frPct = c.freezer_pct  || 0;
+  const hasCh = (c.chiller_target || 0) > 0;
+  const hasFr = (c.freezer_target || 0) > 0;
+  const pctColor = p => p >= 100 ? '#00c853' : p >= 70 ? '#ffb300' : '#ff5252';
+  const pctBar   = (p, col) => `<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:6px"><div style="height:100%;width:${Math.min(p,100)}%;background:${col};border-radius:4px"></div></div>`;
+
+  let targetHtml = '';
+  if (hasCh || hasFr) {
+    targetHtml = `<div style="display:flex;gap:10px;margin-bottom:12px">`;
+    if (hasCh) {
+      const col = pctColor(chPct);
+      targetHtml += `<div style="flex:1;background:var(--card);border:1px solid ${col}44;border-radius:14px;padding:12px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M6 6h.01M12 12h.01"/></svg>
+          <span style="font-size:12px;font-weight:700;color:var(--text)">${lang==='ar'?'ثلاجة':'Chiller'}</span>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:${col}">${chPct.toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:2px">${(c.chiller_sales||0).toFixed(0)} / ${(c.chiller_target||0).toFixed(0)}</div>
+        ${pctBar(chPct, col)}
+      </div>`;
+    }
+    if (hasFr) {
+      const col = pctColor(frPct);
+      targetHtml += `<div style="flex:1;background:var(--card);border:1px solid ${col}44;border-radius:14px;padding:12px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3h-8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+          <span style="font-size:12px;font-weight:700;color:var(--text)">${lang==='ar'?'فريزر':'Freezer'}</span>
+        </div>
+        <div style="font-size:22px;font-weight:800;color:${col}">${frPct.toFixed(1)}%</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:2px">${(c.freezer_sales||0).toFixed(0)} / ${(c.freezer_target||0).toFixed(0)}</div>
+        ${pctBar(frPct, col)}
+      </div>`;
+    }
+    targetHtml += `</div>`;
+  }
+  document.getElementById('asset-target-cards').innerHTML = targetHtml;
 
   if (!assets.length) {
     document.getElementById('assets-table').innerHTML = `<div class="empty-state"><p>${t('noData')}</p></div>`;
@@ -724,12 +794,44 @@ const CAT_NAMES_AR = {chocolate:'شوكولاتة',cake:'كيك',gum:'علكة',
 const CAT_NAMES_EN = {chocolate:'Chocolate',cake:'Cake',gum:'Gum',fruity:'Fruity',icecream:'Ice Cream',be_kind:'Be Kind',petcare:'Petcare'};
 
 function renderSalesTab(c) {
-  const sales = c.sales_cat || {};
-  const gsv = c.total_gsv || 0;
-  const target = c.target || 0;
+  const sales  = c.sales_cat || {};
+  const gsv    = c.total_gsv || 0;
+  const target = c.target    || 0;
+
+  // ── Achievement % ────────────────────────────────────────
+  const achievePct = target > 0 ? (gsv / target * 100) : 0;
+  const achColor   = achievePct >= 100 ? '#00c853' : achievePct >= 70 ? '#ffb300' : '#ff5252';
+  const achLabel   = achievePct >= 100
+    ? (lang==='ar' ? '✅ تم التحقيق' : '✅ Achieved')
+    : achievePct >= 70
+    ? (lang==='ar' ? '⚠️ قريب' : '⚠️ Near')
+    : (lang==='ar' ? '🔴 منخفض' : '🔴 Low');
 
   document.getElementById('d-gsv').textContent = gsv.toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + t('sar');
   document.getElementById('d-target').textContent = target > 0 ? target.toLocaleString('en',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' ' + t('sar') : '—';
+
+  const achEl = document.getElementById('d-achieve-pct');
+  if (achEl) {
+    achEl.textContent = target > 0 ? achievePct.toFixed(1) + '%' : '—';
+    achEl.style.color = achColor;
+  }
+
+  // Progress bar
+  const barWrap = document.getElementById('achieve-bar-wrap');
+  if (barWrap && target > 0) {
+    barWrap.style.display = 'block';
+    const fill = document.getElementById('achieve-bar-fill');
+    const pctLbl = document.getElementById('d-achieve-bar-pct');
+    if (fill) { fill.style.width = Math.min(achievePct, 100) + '%'; fill.style.background = achColor; }
+    if (pctLbl) { pctLbl.textContent = achievePct.toFixed(1) + '% — ' + achLabel; pctLbl.style.color = achColor; }
+    const barLbl = document.getElementById('lbl-achieve-bar');
+    if (barLbl) barLbl.textContent = lang==='ar' ? 'نسبة التحقيق' : 'Achievement';
+  } else if (barWrap) {
+    barWrap.style.display = 'none';
+  }
+
+  const achLbl = document.getElementById('lbl-achieve');
+  if (achLbl) achLbl.textContent = lang==='ar' ? 'التحقيق' : 'Achievement';
 
   // Category bars
   const maxVal = Math.max(...CAT_KEYS.map(k => sales[k] || 0), 1);
