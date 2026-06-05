@@ -1,5 +1,16 @@
 {
   "version": 2,
   "builds": [{ "src": "**", "use": "@vercel/static" }],
-  "routes": [{ "src": "/(.*)", "dest": "/$1" }]
+  "routes": [
+    {
+      "src": "/(.*\\.json)",
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+        "Access-Control-Allow-Origin": "*"
+      },
+      "dest": "/$1"
+    },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
 }
